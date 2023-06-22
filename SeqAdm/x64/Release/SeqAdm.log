@@ -1,0 +1,9 @@
+﻿  CollectorEvent.cpp
+  dumpJson.cpp
+  SeqAdm.cpp
+  SeqAdmfunc.cpp
+  Создание кода
+  Previous IPDB not found, fall back to full compilation.
+  All 1788 functions were compiled because no usable IPDB/IOBJ from previous compilation was found.
+  Создание кода завершено
+  SeqAdm.vcxproj -> C:\Users\matwe\Desktop\S009MachineLearning\SeqAdm\x64\Release\SeqAdm.exe
