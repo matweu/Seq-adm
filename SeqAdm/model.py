@@ -68,19 +68,19 @@ match x[3]:
 
         error_train = (1 / N) * np.sum((train_Y - predictions_train) ** 2, axis=1)
 
-        model.save(model_directory + '\\S009')
+        model.save(model_directory + '\\SeqAdm')
 
-        with open(model_directory + '\\S009\\train.predict', 'w') as f:
+        with open(model_directory + '\\SeqAdm\\train.predict', 'w') as f:
             json.dump(predictions_train.tolist(), f)
-        with open(model_directory + '\\S009\\train.error', 'w') as f:
+        with open(model_directory + '\\SeqAdm\\train.error', 'w') as f:
             json.dump(error_train.tolist(), f)
 
-        model_input = 'S009'
+        model_input = 'SeqAdm'
         
-        model = load_model(model_directory + '\\S009')
-        with open(model_directory + '\\S009\\train.predict', 'r') as f:
+        model = load_model(model_directory + '\\SeqAdm')
+        with open(model_directory + '\\SeqAdm\\train.predict', 'r') as f:
             predictions_train = json.load(f)
-        with open(model_directory + '\\S009\\train.error', 'r') as f:
+        with open(model_directory + '\\SeqAdm\\train.error', 'r') as f:
             error_train = json.load(f)
         print('Модель и отклики загружены')
         print("Model is complete Training")
@@ -107,7 +107,7 @@ anomal_threshold = np.max(np.abs(error_train[100:]), axis=0)
 print("Выполняется поиск аномалий:")
 
 
-time.sleep(5)
+#time.sleep(2)
 
 column1 = []
 column2 = []
@@ -115,20 +115,21 @@ column3 = []
 column4 = []
 
 while True:
-    file = open(test_fname, 'r')
-    lines = file.readlines()
+    try:
+        file = open(test_fname, 'r')
+        lines = file.readlines()
+    except:
+        lines.clear()
+        file.close()
     file.close()
-
     if len(column1) < N:
         if len(lines) < N:
-            #print("Недостаточно элементов в файле. Повторная попытка через 5 секунд...")
             column1.clear()
             column2.clear()
             column3.clear()
             column4.clear()
-            time.sleep(5)
             continue
-
+       
         for line in lines:
             data = line.strip().split('\t')
             if len(data) >= 2:
@@ -146,7 +147,7 @@ while True:
         print("Второй столбец:")
         for value in column2:
             print(value)
-        time.sleep(5)
+        #time.sleep(3)
     else:
         try:
             test_seq = np.array([int(value) for value in column1])
@@ -165,30 +166,52 @@ while True:
                 predictions_test[i] = yhat
 
             error_test = (1 / N) * np.sum((test_Y - predictions_test) ** 2, axis=1)
-            vad_detection = VAD(signal=error_test, norma=error_train, frame_len=10, k_th=1.1)
+            vad_detection = VAD(signal=error_test, norma=error_train, frame_len = 10, k_th = 1.1)
 
-            detected = np.where(vad_detection != 0)[0]
-            detected_events = []
+            detected = np.where(vad_detection!=0)[0]
+            detected
 
             # Обнаружение аномалий
             with open(model_directory + '\\detected_anomalies.txt', 'a') as f:
-                for i in range(detected[0], detected[-1] + 1):
-                    if error_test[i] > 1e-01:
+                for i in range(detected[0], detected[-1]+1):
+                    if error_test[i] > anomal_threshold:
                         f.write('Обнаружение аномалий\n')
                         f.write('event_id  | error\n')
                         f.write('%d      | %.5e\n' % (test_seq[i], error_test[i]))
                         f.write('%s\t%s\t%s\t%s\n' % (column1[i], column2[i], column3[i], column4[i]))
-                        for event_id in detected_events:
-                            f.write(f'{event_id}\n')
 
             column1.clear()
             column2.clear()
             column3.clear()
             column4.clear()
+            file_clear = open(test_fname,'w') 
+            file_clear.write("")
+            print("Succes")
+            file_clear.close()
             print("Model is Complete session")
-            time.sleep(5)
+            #time.sleep(0.2)
         except FileNotFoundError:
-            print('Ошибка в открытии файла testevent', train_fname)
+            print('Ошибка в открытии файла:', train_fname)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -196,6 +219,45 @@ while True:
 
 
 '''
+while(True):
+    file_path = "loggers.txt"  # Замените "путь_к_файлу.txt" на путь к вашему файлу
+
+# Создаем пустые массивы для первого и второго столбцов
+    column1 = []
+    column2 = []
+# Открываем файл в режиме чтения
+    with open(file_path, 'r') as file:
+    # Читаем файл построчно
+        for line in file:
+        # Разделяем строки по табуляции и выбираем первые два элемента
+            data = line.split('\t')
+            column1.append(data[0])
+            column2.append(data[1])
+
+# Выводим массивы на экран
+    print("Первый столбец:")
+    for value in column1:
+        print(value)
+
+    print("Второй столбец:")
+    for value in column2:
+        print(value)
+
+'''
+
+
+
+
+
+
+
+
+
+
+
+
+'''
+if sys.argv[4] =="1":
     plt.figure(figsize=(17, 3))
     plt.plot(range(len(train_data))[100:], error_train[100:])
     plt.hlines(anomal_threshold, 0,

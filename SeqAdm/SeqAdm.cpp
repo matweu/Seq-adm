@@ -8,6 +8,7 @@
 #include <Windows.h>
 #include <string.h>
 #include <thread>
+#include <exception>
 #include <condition_variable>
 #include "dumpJson.h"
 #include "SeqAdmfunc.h"
@@ -113,7 +114,20 @@ private:
     unsigned int _elapstimeDecision;
     unsigned int _collectedtime;
 };
-
+class Exception_write :public std::exception
+{
+public:
+    Exception_write(const char* msg, int _code):std::exception(msg)
+    {
+        this->_code = _code;
+    }
+    int Get_Code()
+    {
+        return _code;
+    }
+private:
+    int _code;
+};
 
 void OpenSourceModel(std::function<void(const std::string&)> MlPython, std::string mlfolder)
 {
@@ -241,7 +255,6 @@ void TrainPyMLModel(std::string ModelFolder)
             cv.notify_one();
             dataWritten2 = false;
             cv2.wait(ulm2, ret2);
-
         }
         else if (result == "Model is Complete session")
         {
@@ -269,8 +282,64 @@ int writeCollectionEventID(Eventid& writeEvent1, Eventid& writeEvent2)
     dataWritten2 = false;
 
     int count = 0;
-    std::string location = GeTNameDir(); //Требует доработки
+    std::string location = GeTNameDir(); 
+    /*
+    try
+    {
+        std::string filename = "testevent.txt";
+        HANDLE fileHandle = CreateFileA(filename.c_str(), GENERIC_WRITE, 0, nullptr, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
+        if (fileHandle == INVALID_HANDLE_VALUE) { throw Exception_write("Не удалось открыть или создать файл",0); }
+        
+        OVERLAPPED overlapped = {};
+        overlapped.Offset = 0;
+        overlapped.OffsetHigh = 0;
 
+        if (!LockFileEx(fileHandle, LOCKFILE_EXCLUSIVE_LOCK, 0, MAXDWORD, MAXDWORD, &overlapped)) {
+            CloseHandle(fileHandle);
+            throw Exception_write("Не удалось заблокировать файл", 1);
+            return 1;
+        }
+        
+        if (writeEvent1.getrecordNumber_() == 0){collect(writeEvent1);}
+        
+        while (count < 13)
+        {
+            if (collect(writeEvent1, writeEvent2) != 0)
+            {
+                try {
+
+                    std::string message = std::to_string(writeEvent1.geteventid_()) + "\t" + std::to_string(writeEvent1.getrecordNumber_()) + "\t" + std::to_string(writeEvent1.geteventType_()) + "\t" + writeEvent1.getdateWrite_() + "\n";
+                    DWORD bytesToWrite = static_cast<DWORD>(message.length());
+                    DWORD bytesWritten = 0;
+                    if (!WriteFile(fileHandle, message.c_str(), bytesToWrite, &bytesWritten, nullptr) || bytesWritten != bytesToWrite) {
+                     throw Exception_write("Произошла ошибка при сборе данных", 2);}
+                    ++count;
+                }
+                catch (std::exception& ex)
+                {
+                    printf_s(ex.what());
+                    UnlockFileEx(fileHandle, 0, MAXDWORD, MAXDWORD, &overlapped);
+                    CloseHandle(fileHandle);
+                    exit(1);
+                }
+            }
+        }
+
+        UnlockFile(fileHandle, 0, 0, MAXDWORD, MAXDWORD);
+        CloseHandle(fileHandle);
+        printf_s("Сбор данных завершен!\n");
+        dataWritten2 = true;
+        cv2.notify_one();
+        dataWritten = false;
+
+    }
+    catch (Exception_write &ex)
+    {
+        std::cout << ex.what() << std::endl;
+        std::cout << "Код ошибки:" << ex.Get_Code() << std::endl;
+        exit(1);
+        
+    }*/
     std::ofstream writelog;//, fstream::in | fstream::out | fstream::app);
     writelog.open("testevent.txt", std::ios_base::trunc);
     if (writeEvent1.getrecordNumber_() == 0)
@@ -284,6 +353,12 @@ int writeCollectionEventID(Eventid& writeEvent1, Eventid& writeEvent2)
         if (collect(writeEvent1, writeEvent2) != 0)
         {
             try {
+
+                //std::string message = std::to_string(writeEvent1.geteventid_()) + "\t" + std::to_string(writeEvent1.getrecordNumber_())+ "\t" + std::to_string(writeEvent1.geteventType_()) + "\t" + writeEvent1.getdateWrite_() + "\n";
+                //DWORD bytesToWrite = static_cast<DWORD>(message.length());
+                //DWORD bytesWritten = 0;
+
+
                 writelog << writeEvent1.geteventid_() << "\t" << writeEvent1.getrecordNumber_() << "\t" << writeEvent1.geteventType_() << "\t" << writeEvent1.getdateWrite_() << "\n";
                 ++count;
             }
@@ -300,8 +375,7 @@ int writeCollectionEventID(Eventid& writeEvent1, Eventid& writeEvent2)
     dataWritten2 = true;
     cv2.notify_one();
     dataWritten = false;
-    //cv.wait(ulm, ret);
-
+    
     return 0;
 }
 
@@ -312,7 +386,7 @@ int main(int argv, char* argc)
     Decision_NN desNN; //Решение по продолжеению обучение модели
     TrainingNNinfo PrevTrain; // Хранится существующий дамп прошлой тренировки
 
-    std::function<void(const std::string&) > selectedFunction; //Полиморфная обертка функции в конце потреуется либо для Training,либо для Load
+    std::function<void(const std::string&)> selectedFunction; //Полиморфная обертка функции в конце потреуется либо для Training,либо для Load
     std::string ModelFolder = "";
     switch (int result_check = parsInterruption(PrevTrain))
     {
@@ -338,7 +412,7 @@ int main(int argv, char* argc)
                 desNN.set_elapstimeDecision(time_to_col);
                 desNN.set_dataDecision(times_date_now());
                 desNN.set_collectedtime(0);
-                desNN.printdes();
+                //desNN.printdes();
             }
         }
         break;
@@ -353,7 +427,7 @@ int main(int argv, char* argc)
             desNN.set_elapstimeDecision(time_to_col);
             desNN.set_dataDecision(times_date_now());
             desNN.set_collectedtime(0);
-            desNN.printdes();
+           // desNN.printdes();
         }
         break;
     }
@@ -369,20 +443,20 @@ int main(int argv, char* argc)
         time(&end_count);
         unsigned int past_time = 0;
 
-
-        std::string location = GeTNameDir() + "\\" + "InfoTraining" + "\\" + "training.json";
-        std::ofstream writelearn(location, std::ios::trunc);
+        //std::string location = GeTNameDir() + "\\" + "InfoTraining" + "\\" + "training.json";
+        //std::ofstream writelearn(location, std::ios::trunc);
 
         TrainingNNinfo info_collect;
-        json JsonNNinfo;
+        //json JsonNNinfo;
 
         info_collect.setData(desNN.get_dataDecision());
         auto ee = desNN.get_elapstimeDecision();
         info_collect.setelapsTime(ee);
         info_collect.setTimeCollected(past_time + desNN.get_collectedtime());
 
-        info_collect.toJson(JsonNNinfo);
-        writelearn << JsonNNinfo.dump(4);
+        //info_collect.toJson(JsonNNinfo);
+        WriteInfoTraining(info_collect);
+        //writelearn << JsonNNinfo.dump(4);
 
         std::ofstream file("vation.txt", std::ios::app);
         std::fstream readfile("loggers.txt", std::fstream::in | std::fstream::out | std::fstream::app);
@@ -390,7 +464,7 @@ int main(int argv, char* argc)
         //readfile.write((char*)&eventid,sizeof(Eventid)); //Для бинарной записи
 
         collect(eventid);
-        while (time(&end_count) < start_count + desNN.get_elapstimeDecision())
+        while (time(&end_count) < start_count + desNN.get_elapstimeDecision()-desNN.get_collectedtime())
         {
             if (collect(eventid, eventid2) != 0)
             {
@@ -408,21 +482,26 @@ int main(int argv, char* argc)
             if (end_count % 1800 == 0)
             {
                 past_time = (unsigned int)(end_count - start_count);
-
-                writelearn.close();
-                writelearn.open(location, std::ios::trunc);
+                //writelearn.close();
+                //writelearn.open(location, std::ios::trunc);
                 info_collect.setTimeCollected(past_time + desNN.get_collectedtime());
-                info_collect.toJson(JsonNNinfo);
-                writelearn << JsonNNinfo.dump(4);
+                //info_collect.toJson(JsonNNinfo);
+                //writelearn << JsonNNinfo.dump(4);
+                WriteInfoTraining(info_collect);
             }
         }
         file.close();
         readfile.close();
-        writelearn.close();
+        //writelearn.close();
         printf_s("Сбор данных завершен!\n");
 
+        info_collect.setTimeCollected(desNN.get_elapstimeDecision());
+
+        WriteInfoTraining(info_collect);
         ModelFolder = GeTNameDir();
         selectedFunction = TrainPyMLModel;
+        desNN.NeedsTrains("Начать обучение модели?");
+
     }
 
     else if (desNN.getdecisionAnswer() == NO)
@@ -441,9 +520,9 @@ int main(int argv, char* argc)
         }
         printf_s("Путь обнаружен!\n");
         selectedFunction = LoadPyMLModel;
+        desNN.NeedsTrains("Начать обнаружение аномалий?");
 
     }
-    desNN.NeedsTrains("Начать обнаружение аномалий?");
 
     if (desNN.getdecisionAnswer() == YES)
     {
@@ -464,7 +543,6 @@ int main(int argv, char* argc)
         system("pause");
         exit(1);
     }
-
     system("pause");
     return 0;
 }

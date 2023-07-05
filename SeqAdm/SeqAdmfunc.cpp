@@ -183,15 +183,8 @@ unsigned int time_collect()
             }
         } while (Nodigits == true);
         time_interval = collect_day * 86400; //Перевод в UNIX дату
-        std::cout << time_interval << std::endl;
         return time_interval;
-        /*while (!(collect_day > 0 && collect_day < 500))
-        {
-            cin >> collect_day;
-        }
-        time_interval = collect_day * 86400;
-        return time_interval;
-        */
+
     }
     catch (std::exception& writenumeric)
     {
@@ -222,17 +215,32 @@ bool dirExists( std::string& dirName_in)
     return false;
 }
 
-void WriteInfoTraining(std::string data, unsigned int TimeCol, unsigned int elapstime)
+void WriteInfoTraining( TrainingNNinfo &NNinfo)//std::string data, unsigned int TimeCol, unsigned int elapstime)
 {
-    std::string location = GeTNameDir() + "\\" + "InfoTraining" + "\\" + "training.json";
-    std::ofstream writelearn(location);
+    std::string writefolder = GeTNameDir() + "\\" + "InfoTraining";
+    
+    std::string location = writefolder + "\\" + "training.json";
+    
+    if (dirExists(writefolder))
+    {
+        std::ofstream writelearn(location, std::ios::trunc);
 
-    TrainingNNinfo NNinfo(data, TimeCol, elapstime);
-    json jsonNNinfo;
+        //TrainingNNinfo NNinfo(data, TimeCol, elapstime);
+        json jsonNNinfo;
+        NNinfo.toJson(jsonNNinfo);
+        writelearn << jsonNNinfo.dump(4);
+        writelearn.close();
+    }
+    else
+    {
+        std::filesystem::create_directory(writefolder);
+        std::ofstream writelearn(location, std::ios::trunc);
 
-    NNinfo.toJson(jsonNNinfo);
-
-    writelearn << jsonNNinfo.dump(4);
-    writelearn.close();
-
+        //TrainingNNinfo NNinfo(data, TimeCol, elapstime);
+        json jsonNNinfo;
+        NNinfo.toJson(jsonNNinfo);
+        writelearn << jsonNNinfo.dump(4);
+        writelearn.close();
+    }
+    
 }

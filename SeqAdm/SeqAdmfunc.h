@@ -12,6 +12,7 @@
 #include <direct.h>
 #include <string.h>
 #include "dumpJson.h"
+#include <filesystem>
 
 bool NeedsTrainingModel(std::string printstring);
 
@@ -31,7 +32,7 @@ unsigned int time_collect();
 
 bool dirExists(std::string& dirName_in);
 
-void WriteInfoTraining(std::string data, unsigned int TimeCol, unsigned int elapstime);
+void WriteInfoTraining(TrainingNNinfo& NNinfo);//std::string data, unsigned int TimeCol, unsigned int elapstime);
 
 
 enum TypeTrainingModels
